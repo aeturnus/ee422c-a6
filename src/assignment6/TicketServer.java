@@ -7,6 +7,14 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+/**
+ * This class serves as a server for assigning tickets
+ */
+
+/*
+ * We're going to need a data structure to store seats -Brandon 4/14/2016
+ */
+
 public class TicketServer {
 	static int PORT = 2222;
 	// EE422C: no matter how many concurrent requests you get,
