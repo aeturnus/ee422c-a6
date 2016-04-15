@@ -20,12 +20,17 @@ public class TicketServer {
 	// EE422C: no matter how many concurrent requests you get,
 	// do not have more than three servers running concurrently
 	final static int MAXPARALLELTHREADS = 3;
+	private static int serverCount = 0;
 
 	public static void start(int portNumber) throws IOException {
 		PORT = portNumber;
-		Runnable serverThread = new ThreadedTicketServer();
-		Thread t = new Thread(serverThread);
-		t.start();
+		//Make sure we have a max of only MAXPARALLELTHREADS servers running concurrently
+		if(serverCount < MAXPARALLELTHREADS) {
+			serverCount++;	// increment our server count
+			Runnable serverThread = new ThreadedTicketServer();
+			Thread t = new Thread(serverThread);
+			t.start();
+		}
 	}
 }
 
