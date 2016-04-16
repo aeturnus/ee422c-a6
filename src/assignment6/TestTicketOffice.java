@@ -2,6 +2,10 @@ package assignment6;
 
 import static org.junit.Assert.fail;
 
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+
 import org.junit.Test;
 
 public class TestTicketOffice {
@@ -84,5 +88,57 @@ public class TestTicketOffice {
 			e.printStackTrace();
 		}
 
+	}
+	
+	@Test
+	public void autoConcurrentServerTest() {
+		/*
+		try{
+			System.setOut(new PrintStream("log.txt"));
+		}catch(FileNotFoundException fe){
+			fe.printStackTrace();
+		}
+		*/
+		///*
+		try {
+			TicketServer.start(16793);
+		} catch (Exception e) {
+			fail();
+		}
+		ArrayList<RequestThread> threadList = new ArrayList<RequestThread>();
+		TicketClient tc;
+		for(int i = 0; i < 100; i++){
+			tc = new TicketClient("conc #"+i);
+			RequestThread thread = new RequestThread(tc);
+			threadList.add(thread);
+			thread.start();
+			/*
+			try{
+				Thread.sleep((int)(Math.random() * 100));	//sleep for a bit to simulate next client
+			} catch(InterruptedException ie){
+				Thread.currentThread().interrupt();
+			}
+			*/
+		}
+		try {
+			for(int i = 0; i < threadList.size(); i++)
+			{
+				threadList.get(i).join();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+		//*/
+	}
+}
+
+class RequestThread extends Thread{
+	TicketClient tc;
+	RequestThread(TicketClient client){
+		tc = client;
+	}
+	public void run(){
+		tc.requestTicket();
 	}
 }
