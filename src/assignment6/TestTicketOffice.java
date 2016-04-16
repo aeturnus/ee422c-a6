@@ -99,7 +99,7 @@ public class TestTicketOffice {
 		}
 		ArrayList<RequestThread> threadList = new ArrayList<RequestThread>();
 		TicketClient tc;
-		for(int i = 0; i < 100; i++){
+		for(int i = 0; i < 1000; i++){
 			tc = new TicketClient("conc #"+i);
 			RequestThread thread = new RequestThread(tc);
 			threadList.add(thread);

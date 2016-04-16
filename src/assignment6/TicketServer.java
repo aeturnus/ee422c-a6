@@ -9,6 +9,9 @@ import java.net.Socket;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
+import assignment6.theater.Seat;
+import assignment6.theater.Theater;
+
 /**
  * This class serves as a server for assigning tickets
  */
@@ -24,9 +27,10 @@ public class TicketServer {
 	final static int MAXPARALLELTHREADS = 3;
 	static ServerSocket serverSocket = null;
 	static CyclicBarrier serverSocketBarrier = null;	//Have a barrier kill the socket when the server threads are done
-	static int ticketCount = 50;
+	static Theater theater;
 	public static void start(int portNumber) throws IOException {
 		PORT = portNumber;
+		theater = new Theater();	//Get ourselves a theater!
 		
 		//Create a serversocket for this server
 		serverSocket = null;
@@ -38,7 +42,7 @@ public class TicketServer {
 		
 		serverSocketBarrier = new CyclicBarrier(MAXPARALLELTHREADS, new Runnable() {
 			public void run(){
-				//Use a barrier to wait until the others die to shut down the socket
+				//Use a barrier to wait until the server threads die to shut down the socket
 				try{
 					if(TicketServer.serverSocket != null){
 						TicketServer.serverSocket.close();
@@ -61,8 +65,33 @@ public class TicketServer {
 			t.start();
 		}
 		
-		
-			 
+	}
+	
+	/**
+	 * TODO: Finish this
+	 * TicketServer wrapper for best available seat
+	 * @return best available seat
+	 */
+	static Seat bestAvailableSeat(){
+		return theater.getBestAvailableSeat();
+	}
+	
+	/**
+	 * TODO: Finish this
+	 * TicketServer wrapper for marking a seat
+	 * @return best available seat
+	 */
+	static void markAvailableSeatTaken(Seat seat){
+		seat.setTaken();
+	}
+	
+	/**
+	 * TODO: Finish this
+	 * TicketServer wrapper for printing a ticket
+	 * @return ticket in string form
+	 */
+	static String printTicket(Seat seat){
+		return seat.toString();
 	}
 }
 
@@ -87,20 +116,33 @@ class ThreadedTicketServer implements Runnable {
 		// TODO 422C
 		
 		boolean running = true;
-		while(TicketServer.ticketCount > 0)
+		while(running)
 		{
 			try {
 				//Listen for socket requests
 				//Should run until no more seats
 				Socket clientSocket = serverSocket.accept();	//Accept connections
+				long time = System.nanoTime();	//Timestamps for request
+				
+				//As it stands, we have race conditions; oh fun!
+				//Locations to target: accessing seat status, setting seat status; should lock seat status access
+				Seat seat = TicketServer.bestAvailableSeat();	//Get a seat as fast as possible	
+				if(seat == null){	//If not a seat, then we're out. Finish up this thread and leave
+					System.err.println("no seat");
+					clientSocket.close();
+					running = false;
+					continue;
+				}
+				TicketServer.markAvailableSeatTaken(seat);	//Set it taken
+				
 				PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-				out.println(threadname + ": " + TicketServer.ticketCount + " tickets left");
-				TicketServer.ticketCount--;
+				out.println(time + "\t: " +threadname + " has given you ticket " + seat.toString());	//Tabbed timestamp; sortable by time in excel
+				
 				//Close the streams
+				clientSocket.close();
 				out.close();
 				in.close();
-				//Thread.currentThread().yield();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				System.err.println(threadname + " went oopsie");

@@ -11,6 +11,24 @@ public class Theater
 	}
 	
 	/**
+	 * This will return the best available seat
+	 * (This might have to have synchronization)
+	 * @return Seat reference if there is one, null if there isn't
+	 */
+	public Seat getBestAvailableSeat(){
+		Seat output = null;
+		Seat temp;
+		int length = seats.size();
+		for(int i = 0; i < length && output == null; i++){
+			temp = seats.get(i);
+			if(!temp.isTaken()){
+				output = temp;
+			}
+		}
+		return output;
+	}
+	
+	/**
 	 * This method creates the seats; highest priority seats in at the beginning
 	 */
 	private void generateSeats(){

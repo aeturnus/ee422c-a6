@@ -64,7 +64,7 @@ public class TicketClient {
 	void requestTicket() {
 		// TODO thread.run()
 		tc.run();
-		System.out.println(hostName + "," + threadName + " got one ticket");
+		//System.out.println(hostName + "," + threadName + " got one ticket");
 	}
 
 	void sleep() {
