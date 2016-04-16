@@ -92,14 +92,6 @@ public class TestTicketOffice {
 	
 	@Test
 	public void autoConcurrentServerTest() {
-		/*
-		try{
-			System.setOut(new PrintStream("log.txt"));
-		}catch(FileNotFoundException fe){
-			fe.printStackTrace();
-		}
-		*/
-		///*
 		try {
 			TicketServer.start(16793);
 		} catch (Exception e) {
@@ -114,7 +106,7 @@ public class TestTicketOffice {
 			thread.start();
 			/*
 			try{
-				Thread.sleep((int)(Math.random() * 100));	//sleep for a bit to simulate next client
+				Thread.sleep((int)(Math.random() * 100));	//sleep for a bit to simulate next client delay
 			} catch(InterruptedException ie){
 				Thread.currentThread().interrupt();
 			}
@@ -129,7 +121,6 @@ public class TestTicketOffice {
 			e.printStackTrace();
 			fail();
 		}
-		//*/
 	}
 }
 
