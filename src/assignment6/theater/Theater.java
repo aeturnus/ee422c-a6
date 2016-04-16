@@ -5,8 +5,9 @@ import java.util.ArrayList;
 public class Theater
 {
 	ArrayList<Seat> seats;
-	public void Theater(){
-		
+	
+	public Theater(){
+		generateSeats();
 	}
 	
 	/**
@@ -61,5 +62,15 @@ public class Theater
 				}
 			}
 		}
+	}
+	
+	public String toString(){
+		String output = "";
+		int length = seats.size();
+		for(int i = 0; i < length; i++)
+		{
+			output += seats.get(i) + "\n";
+		}
+		return output;
 	}
 }

@@ -1,8 +1,8 @@
 package test;
 
-import static org.junit.Assert.*;
-
 import org.junit.Test;
+
+import assignment6.theater.Theater;
 
 public class TestTheater
 {
@@ -10,6 +10,8 @@ public class TestTheater
 	@Test
 	public void test()
 	{
+		Theater theater = new Theater();
+		System.out.println(theater.toString());
 		assert(true);
 		//fail("Not yet implemented");
 	}
