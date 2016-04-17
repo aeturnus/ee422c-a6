@@ -8,6 +8,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import assignment6.theater.Seat;
 import assignment6.theater.Theater;
@@ -104,6 +106,7 @@ class ThreadedTicketServer implements Runnable {
 	TicketClient sc;
 	ServerSocket serverSocket;	//Have a serversocket for us to listen to
 	CyclicBarrier barrier;		//Barrier for closing the socket
+	static Lock seatLock = new ReentrantLock();
 	
 	//Made a constructor so it actually has a name and a server socket
 	ThreadedTicketServer(String name, ServerSocket ssocket, CyclicBarrier socketBarrier){
@@ -126,14 +129,19 @@ class ThreadedTicketServer implements Runnable {
 				
 				//As it stands, we have race conditions; oh fun!
 				//Locations to target: accessing seat status, setting seat status; should lock seat status access
+				seatLock.lock();
+				//Critical section
 				Seat seat = TicketServer.bestAvailableSeat();	//Get a seat as fast as possible	
 				if(seat == null){	//If not a seat, then we're out. Finish up this thread and leave
 					System.err.println("no seat");
 					clientSocket.close();
 					running = false;
+					seatLock.unlock();
 					continue;
 				}
 				TicketServer.markAvailableSeatTaken(seat);	//Set it taken
+				seatLock.unlock();
+				//Critical end
 				
 				PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
