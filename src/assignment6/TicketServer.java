@@ -145,7 +145,7 @@ class ThreadedTicketServer implements Runnable {
 				
 				PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-				out.println(time + "\t: " +threadname + " has given you ticket " + seat.toString());	//Tabbed timestamp; sortable by time in excel
+				out.println(time + "\t: " +threadname + " has given you ticket " + TicketServer.printTicket(seat));	//Tabbed timestamp; sortable by time in excel
 				
 				//Close the streams
 				clientSocket.close();
