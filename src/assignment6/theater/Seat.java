@@ -4,7 +4,7 @@ package assignment6.theater;
  * This class represents a seat
  * that can be taken; not taken
  */
-public class Seat
+public class Seat implements Comparable<Seat>
 {
 	protected int row;	//a = 0; aa = 26
 	protected int seat;	//plain number
@@ -47,5 +47,36 @@ public class Seat
 		}
 		
 		return output;
+	}
+	
+	public int compareTo(Seat other){
+		
+		//Compare row
+		if(row < other.row){
+			return -1;
+		}else if(row > other.row){
+			return 1;
+		}
+		
+		//Compare house
+		if(other.house == other.house){
+			//Seat comparison
+			return this.seat - other.seat;
+		}
+		else{
+			switch(house){
+			case MIDDLE:
+				return -1;	//if we're middle, they're lower
+			case LEFT:
+				return 1;	//Let house left be the lowest
+			case RIGHT:
+				if(other.house == HouseEnum.MIDDLE)
+					return 1;	//If the other one is middle, we're further
+				else
+					return -1;	//If the other one is left, it's lower	
+			default:
+				return 0;		//Should not happen
+			}
+		}
 	}
 }

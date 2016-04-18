@@ -1,11 +1,14 @@
 package assignment6;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.locks.Lock;
@@ -29,10 +32,12 @@ public class TicketServer {
 	final static int MAXPARALLELTHREADS = 3;
 	static ServerSocket serverSocket = null;
 	static CyclicBarrier serverSocketBarrier = null;	//Have a barrier kill the socket when the server threads are done
-	static Theater theater;
+	static Theater theater = null;
+	static ArrayList<TicketLog> log;
 	public static void start(int portNumber) throws IOException {
 		PORT = portNumber;
 		theater = new Theater();	//Get ourselves a theater!
+		log = new ArrayList<TicketLog>();
 		
 		//Create a serversocket for this server
 		serverSocket = null;
@@ -42,6 +47,7 @@ public class TicketServer {
 			ioe.printStackTrace();
 		}
 		
+		//Barrier code for shutdown
 		serverSocketBarrier = new CyclicBarrier(MAXPARALLELTHREADS, new Runnable() {
 			public void run(){
 				//Use a barrier to wait until the server threads die to shut down the socket
@@ -49,6 +55,10 @@ public class TicketServer {
 					if(TicketServer.serverSocket != null){
 						TicketServer.serverSocket.close();
 						System.out.println("Server has closed port " + TicketServer.PORT);
+						//Sort the log
+						log.sort(null);
+						File csv = new File("./log.csv");
+						printLog(new PrintStream(csv));
 					}
 				} catch (IOException ioe){
 					System.err.println("server failed to close server socket for port " + TicketServer.PORT);
@@ -95,6 +105,30 @@ public class TicketServer {
 	static String printTicket(Seat seat){
 		return seat.toString();
 	}
+	
+	static void logSeat(long timestamp, Seat seat){
+		log.add(new TicketLog(timestamp,seat));
+	}
+	
+	static void printLog(PrintStream stream){
+		int length = log.size();
+		for(int i = 0; i < length; i++){
+			stream.println(log.get(i).toString());
+		}
+	}
+	
+	static boolean checkLog(){
+		int length = log.size()-1;
+		TicketLog one,two;
+		for(int i = 0; i < length; i++){
+			one = log.get(i);
+			two = log.get(i+1);
+			if(one.compareTo(two) >= 0){
+				return false;
+			}
+		}
+		return true;
+	}
 }
 
 class ThreadedTicketServer implements Runnable {
@@ -140,6 +174,7 @@ class ThreadedTicketServer implements Runnable {
 					continue;
 				}
 				TicketServer.markAvailableSeatTaken(seat);	//Set it taken
+				TicketServer.logSeat(time,seat);
 				seatLock.unlock();
 				//Critical end
 				
@@ -151,6 +186,8 @@ class ThreadedTicketServer implements Runnable {
 				clientSocket.close();
 				out.close();
 				in.close();
+				
+				
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				System.err.println(threadname + " went oopsie");
@@ -167,5 +204,42 @@ class ThreadedTicketServer implements Runnable {
 			System.err.println(threadname + ": barrier is broken :(");
 		}
 		
+	}
+}
+
+/**
+ * This class will serve as a log object
+ */
+class TicketLog implements Comparable<TicketLog>{
+	private long timestamp;
+	private Seat seat;
+	
+	TicketLog(long timestamp, Seat seat){
+		this.timestamp = timestamp;
+		this.seat = seat;
+	}
+	
+	//CSV'able entry
+	public String toString(){
+		String output = timestamp + "," + seat.toString();
+		return output;
+	}
+	
+	/**
+	 * Compares timestamps;
+	 */
+	public int compareTo(TicketLog other){
+		long comp = timestamp - other.timestamp;
+		if(comp < 0){
+			return -1;
+		}
+		else if(comp == 0){
+			return 0;
+		}
+		return 1;
+	}
+	
+	Seat getSeat(){
+		return seat;
 	}
 }

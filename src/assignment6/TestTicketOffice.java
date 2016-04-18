@@ -121,6 +121,7 @@ public class TestTicketOffice {
 			e.printStackTrace();
 			fail();
 		}
+		assert(TicketServer.checkLog());
 	}
 }
 
