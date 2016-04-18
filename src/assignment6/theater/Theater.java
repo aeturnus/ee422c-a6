@@ -4,10 +4,10 @@ import java.util.ArrayList;
 
 public class Theater
 {
-	ArrayList<Seat> seats;
-	
+	//ArrayList<Seat> seats;
+	Seat[] seats;
 	public Theater(){
-		generateSeats();
+		seats = generateSeats();
 	}
 	
 	/**
@@ -18,9 +18,9 @@ public class Theater
 	public Seat getBestAvailableSeat(){
 		Seat output = null;
 		Seat temp;
-		int length = seats.size();
+		int length = seats.length;
 		for(int i = 0; i < length && output == null; i++){
-			temp = seats.get(i);
+			temp = seats[i];
 			if(!temp.isTaken()){
 				output = temp;
 			}
@@ -31,28 +31,28 @@ public class Theater
 	/**
 	 * This method creates the seats; highest priority seats in at the beginning
 	 */
-	private void generateSeats(){
-		seats = new ArrayList<Seat>();
+	private Seat[] generateSeats(){
+		ArrayList<Seat> seatList = new ArrayList<Seat>();
 		//Generate the seats: put them in priority order
 		for(int r = 0; r <= 26; r++){
 			//Middle seats
 			if(r <= 23){
 				//Only rows A-X have middle house
 				for(int s = 108; s <= 121; s++){
-					seats.add(new Seat(r, s, HouseEnum.MIDDLE));
+					seatList.add(new Seat(r, s, HouseEnum.MIDDLE));
 				}
 			}
 			
 			//House right seats
 			if(r == 26){
 				//AA has only two house right seats
-				seats.add(new Seat(r, 127, HouseEnum.RIGHT));
-				seats.add(new Seat(r, 128, HouseEnum.RIGHT));
+				seatList.add(new Seat(r, 127, HouseEnum.RIGHT));
+				seatList.add(new Seat(r, 128, HouseEnum.RIGHT));
 			}
 			else{
 				//All the other rows go from 122-128
 				for(int s = 122; s <= 128; s++){
-					seats.add(new Seat(r, s, HouseEnum.RIGHT));
+					seatList.add(new Seat(r, s, HouseEnum.RIGHT));
 				}
 			}
 			
@@ -60,34 +60,37 @@ public class Theater
 			if(r == 26){
 				//row AA has a weird house left
 				for(int s = 101; s <= 104; s++){
-					seats.add(new Seat(r, s, HouseEnum.LEFT));
+					seatList.add(new Seat(r, s, HouseEnum.LEFT));
 				}
 				for(int s = 116; s <= 118; s++){
-					seats.add(new Seat(r, s, HouseEnum.LEFT));
+					seatList.add(new Seat(r, s, HouseEnum.LEFT));
 				}
 			}
 			else if(r > 2){
-				//D - Z have 101-107 seats
+				//D - Z have 101-107 seatList
 				for(int s = 101; s <= 107; s++){
-					seats.add(new Seat(r, s, HouseEnum.LEFT));
+					seatList.add(new Seat(r, s, HouseEnum.LEFT));
 				}
 			}
 			else if (r == 2){
-				//C has 1-106 seats
+				//C has 1-106 seatList
 				//rows A and B have no house left
 				for(int s = 101; s <= 106; s++){
-					seats.add(new Seat(r, s, HouseEnum.LEFT));
+					seatList.add(new Seat(r, s, HouseEnum.LEFT));
 				}
 			}
 		}
+		Seat[] newArray = new Seat[seatList.size()];
+		newArray = seatList.toArray(newArray);
+		return newArray;
 	}
 	
 	public String toString(){
 		String output = "";
-		int length = seats.size();
+		int length = seats.length;
 		for(int i = 0; i < length; i++)
 		{
-			output += seats.get(i) + "\n";
+			output += seats[i] + "\n";
 		}
 		return output;
 	}

@@ -7,3 +7,4 @@
 ### assignment6 includes the TestTicketOffice class where the main tests that can run are located
 ### assignment6.theater includes the Theater, Seat, and HouseEnum classes that organize the seating structure for the theater
 ### test includes JUnit test cases that test the classes under assignment6.theater to make sure they are working correctly
+
