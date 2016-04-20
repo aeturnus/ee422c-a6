@@ -59,6 +59,8 @@ public class TicketServer {
 						log.sort(null);
 						File csv = new File("./log.csv");
 						printLog(new PrintStream(csv));
+						System.out.println("Shutting down server");
+						System.exit(0);
 					}
 				} catch (IOException ioe){
 					System.err.println("server failed to close server socket for port " + TicketServer.PORT);
@@ -160,17 +162,20 @@ class ThreadedTicketServer implements Runnable {
 				//Should run until no more seats
 				Socket clientSocket = serverSocket.accept();	//Accept connections
 				long time = System.nanoTime();	//Timestamps for request
-				
+				PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 				//As it stands, we have race conditions; oh fun!
 				//Locations to target: accessing seat status, setting seat status; should lock seat status access
 				seatLock.lock();
 				//Critical section
 				Seat seat = TicketServer.bestAvailableSeat();	//Get a seat as fast as possible	
 				if(seat == null){	//If not a seat, then we're out. Finish up this thread and leave
-					System.err.println("no seat");
-					clientSocket.close();
+					out.println(threadname + ": Sorry, we're out of seats!");
 					running = false;
 					seatLock.unlock();
+					out.close();
+					in.close();
+					clientSocket.close();
 					continue;
 				}
 				TicketServer.markAvailableSeatTaken(seat);	//Set it taken
@@ -178,14 +183,13 @@ class ThreadedTicketServer implements Runnable {
 				seatLock.unlock();
 				//Critical end
 				
-				PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+				
 				out.println(time + "\t: " +threadname + " has given you ticket " + TicketServer.printTicket(seat));	//Tabbed timestamp; sortable by time in excel
 				
 				//Close the streams
-				clientSocket.close();
 				out.close();
 				in.close();
+				clientSocket.close();
 				
 				
 			} catch (IOException e) {

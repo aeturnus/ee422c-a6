@@ -104,13 +104,6 @@ public class TestTicketOffice {
 			RequestThread thread = new RequestThread(tc);
 			threadList.add(thread);
 			thread.start();
-			/*
-			try{
-				Thread.sleep((int)(Math.random() * 100));	//sleep for a bit to simulate next client delay
-			} catch(InterruptedException ie){
-				Thread.currentThread().interrupt();
-			}
-			*/
 		}
 		try {
 			for(int i = 0; i < threadList.size(); i++)
@@ -123,6 +116,39 @@ public class TestTicketOffice {
 		}
 		assert(TicketServer.checkLog());
 	}
+	
+	@Test
+	public void autoConcurrentServerTestTiming() {
+		try {
+			TicketServer.start(16794);
+		} catch (Exception e) {
+			fail();
+		}
+		ArrayList<RequestThread> threadList = new ArrayList<RequestThread>();
+		TicketClient tc;
+		for(int i = 0; i < 1000; i++){
+			tc = new TicketClient("conc #"+i);
+			RequestThread thread = new RequestThread(tc);
+			threadList.add(thread);
+			try{
+				Thread.sleep((int)(Math.random() * 10));	//sleep for a bit to simulate next client delay
+			} catch(InterruptedException ie){
+				Thread.currentThread().interrupt();
+			}
+			thread.start();
+		}
+		try {
+			for(int i = 0; i < threadList.size(); i++)
+			{
+				threadList.get(i).join();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+		assert(TicketServer.checkLog());
+	}
+	
 }
 
 class RequestThread extends Thread{

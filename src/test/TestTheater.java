@@ -12,7 +12,7 @@ public class TestTheater
 	public void test()
 	{
 		Theater theater = new Theater();
-		System.out.println(theater.toString());
+		//System.out.println(theater.toString());
 		assert(true);
 		//fail("Not yet implemented");
 	}

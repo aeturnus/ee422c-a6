@@ -59,7 +59,7 @@ public class Seat implements Comparable<Seat>
 		}
 		
 		//Compare house
-		if(other.house == other.house){
+		if(house == other.house){
 			//Seat comparison
 			return this.seat - other.seat;
 		}
@@ -70,10 +70,11 @@ public class Seat implements Comparable<Seat>
 			case LEFT:
 				return 1;	//Let house left be the lowest
 			case RIGHT:
-				if(other.house == HouseEnum.MIDDLE)
+				if(other.house == HouseEnum.MIDDLE){
 					return 1;	//If the other one is middle, we're further
-				else
+				}else{
 					return -1;	//If the other one is left, it's lower	
+				}
 			default:
 				return 0;		//Should not happen
 			}
