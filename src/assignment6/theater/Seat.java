@@ -26,6 +26,9 @@ public class Seat implements Comparable<Seat>
 	
 	//Accessors for taken: at some point 
 	//these need to be synchronized
+	public void setOpen(){
+		taken = false;
+	}
 	public void setTaken(){
 		taken = true;
 	}

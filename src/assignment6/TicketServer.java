@@ -26,25 +26,47 @@ import assignment6.theater.Theater;
  */
 
 public class TicketServer {
-	static int PORT = 2222;
+	//static int PORT = 2222; we can't use this
 	// EE422C: no matter how many concurrent requests you get,
 	// do not have more than three servers running concurrently
 	final static int MAXPARALLELTHREADS = 3;
-	static ServerSocket serverSocket = null;
+	static int numThread = 0;
 	static CyclicBarrier serverSocketBarrier = null;	//Have a barrier kill the socket when the server threads are done
-	static Theater theater = null;
+	static Theater theater = new Theater();				//We have one theater
 	static ArrayList<TicketLog> log;
+	static final String logPath = "./log.csv";			//path for our log file
+	static ArrayList<ThreadedTicketServer> servers = new ArrayList<ThreadedTicketServer>();	//Arraylist for the server objects
+	static ArrayList<Thread> serverThreads = new ArrayList<Thread>();						//Arraylist for the threads they use
+	
+	public static void reset(){
+		//Shutdown our running servers
+		for(int i = 0; i < servers.size(); i++){
+			servers.get(i).running = false;
+			try{
+				serverThreads.get(i).join();
+			}catch(InterruptedException ie){
+				Thread.currentThread().interrupt();
+			}
+		}
+		//Clear our servers from the list
+		servers.clear();
+		serverThreads.clear();
+		theater.clear();
+		numThread = 0;
+		log.clear();
+		System.out.println("Server reset!");
+	}
+	
 	public static void start(int portNumber) throws IOException {
-		PORT = portNumber;
-		theater = new Theater();	//Get ourselves a theater!
 		log = new ArrayList<TicketLog>();
 		
-		//Create a serversocket for this server
-		serverSocket = null;
+		//Create a serversocket for the new server
+		ServerSocket serverSocket = null;
 		try{
-			serverSocket = new ServerSocket(TicketServer.PORT);
+			serverSocket = new ServerSocket(portNumber);
 		} catch (IOException ioe){
 			ioe.printStackTrace();
+			return;
 		}
 		
 		//Barrier code for shutdown
@@ -52,18 +74,15 @@ public class TicketServer {
 			public void run(){
 				//Use a barrier to wait until the server threads die to shut down the socket
 				try{
-					if(TicketServer.serverSocket != null){
-						TicketServer.serverSocket.close();
-						System.out.println("Server has closed port " + TicketServer.PORT);
-						//Sort the log
-						log.sort(null);
-						File csv = new File("./log.csv");
-						printLog(new PrintStream(csv));
-						System.out.println("Shutting down server");
-						System.exit(0);
-					}
+					System.out.println("Servers have closed down");
+					//Sort the log
+					log.sort(null);
+					File csv = new File("./log.csv");
+					printLog(new PrintStream(csv));
+					System.out.println("Ticket log written to ");
+					System.exit(0);
 				} catch (IOException ioe){
-					System.err.println("server failed to close server socket for port " + TicketServer.PORT);
+					//System.err.println("server failed to close server socket for port " + TicketServer.PORT);
 					ioe.printStackTrace();
 				}
 			}
@@ -71,11 +90,12 @@ public class TicketServer {
 		
 		//Create servers not exceeding the count of MAXPARALLELTHREADS
 		//threadList = new ArrayList<ThreadedTicketServer>();
-		for(int i = 0; i < MAXPARALLELTHREADS; i++){
-			Runnable serverThread = new ThreadedTicketServer("Box Office " + Character.toString((char)('A' + i))
+		if(numThread < MAXPARALLELTHREADS){
+			ThreadedTicketServer serverThread = new ThreadedTicketServer("Box Office " + Character.toString((char)('A' + numThread))
 																,serverSocket
 																,serverSocketBarrier);	//Get office letter with 'A' offset
 			Thread t = new Thread(serverThread);
+			numThread++;
 			t.start();
 		}
 		
@@ -108,18 +128,40 @@ public class TicketServer {
 		return seat.toString();
 	}
 	
-	static void logSeat(long timestamp, Seat seat){
-		log.add(new TicketLog(timestamp,seat));
+	static void logSeat(long timestamp, Seat seat, String office){
+		log.add(new TicketLog(timestamp,seat,office));
 	}
 	
 	static void printLog(PrintStream stream){
+		log.sort(null);
 		int length = log.size();
 		for(int i = 0; i < length; i++){
 			stream.println(log.get(i).toString());
 		}
 	}
 	
-	static boolean checkLog(){
+	/**
+	 * This method checks if there are double printed tickets
+	 * @return no doubles
+	 */
+	static boolean checkLogDoubles(){
+		int length = log.size();
+		for(int i = 0; i < length; i++){
+			for(int j = i+1; j < length; j++){
+				//Use compare to check for matches
+				if(log.get(i).compareTo(log.get(j)) == 0){
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * Check if seats assigned in the log were in order
+	 * @return
+	 */
+	static boolean checkLogOrder(){
 		int length = log.size()-1;
 		TicketLog one,two;
 		for(int i = 0; i < length; i++){
@@ -143,30 +185,30 @@ class ThreadedTicketServer implements Runnable {
 	ServerSocket serverSocket;	//Have a serversocket for us to listen to
 	CyclicBarrier barrier;		//Barrier for closing the socket
 	static Lock seatLock = new ReentrantLock();
+	boolean running;	//Is it running the loop?
 	
 	//Made a constructor so it actually has a name and a server socket
 	ThreadedTicketServer(String name, ServerSocket ssocket, CyclicBarrier socketBarrier){
 		threadname = name;
 		serverSocket = ssocket;
 		barrier = socketBarrier;
+		running = true;
 	}
 
 	public void run() {
 		// TODO 422C
-		
-		boolean running = true;
 		while(running)
 		{
 			try {
 				//Listen for socket requests
 				//Should run until no more seats
 				Socket clientSocket = serverSocket.accept();	//Accept connections
-				long time = System.nanoTime();	//Timestamps for request
 				PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 				//As it stands, we have race conditions; oh fun!
 				//Locations to target: accessing seat status, setting seat status; should lock seat status access
 				seatLock.lock();
+				long time = System.nanoTime();	//Timestamp for request
 				//Critical section
 				Seat seat = TicketServer.bestAvailableSeat();	//Get a seat as fast as possible	
 				if(seat == null){	//If not a seat, then we're out. Finish up this thread and leave
@@ -179,7 +221,7 @@ class ThreadedTicketServer implements Runnable {
 					continue;
 				}
 				TicketServer.markAvailableSeatTaken(seat);	//Set it taken
-				TicketServer.logSeat(time,seat);
+				TicketServer.logSeat(time,seat,threadname);
 				seatLock.unlock();
 				//Critical end
 				
@@ -190,16 +232,20 @@ class ThreadedTicketServer implements Runnable {
 				out.close();
 				in.close();
 				clientSocket.close();
-				
-				
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				System.err.println(threadname + " went oopsie");
 				e.printStackTrace();
 			}
 		}
-		
+		try{
+			serverSocket.close();
+			TicketServer.numThread--;
+		}catch(IOException ioe){
+			System.err.println(threadname + ": has failed to close port " + serverSocket.getLocalPort());
+		}
 		//We use a barrier to handle the closing of the port
+		/*
 		try{
 			barrier.await();
 		} catch (InterruptedException ioe){
@@ -207,6 +253,7 @@ class ThreadedTicketServer implements Runnable {
 		} catch (BrokenBarrierException bbe){
 			System.err.println(threadname + ": barrier is broken :(");
 		}
+		*/
 		
 	}
 }
@@ -217,15 +264,17 @@ class ThreadedTicketServer implements Runnable {
 class TicketLog implements Comparable<TicketLog>{
 	private long timestamp;
 	private Seat seat;
+	private String office;
 	
-	TicketLog(long timestamp, Seat seat){
+	TicketLog(long timestamp, Seat seat, String office){
 		this.timestamp = timestamp;
 		this.seat = seat;
+		this.office = office;
 	}
 	
 	//CSV'able entry
 	public String toString(){
-		String output = timestamp + "," + seat.toString();
+		String output = timestamp + "," + seat.toString() + "," + office;
 		return output;
 	}
 	

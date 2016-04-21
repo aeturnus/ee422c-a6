@@ -11,6 +11,16 @@ public class Theater
 	}
 	
 	/**
+	 * Unmarks all the seats
+	 */
+	public void clear(){
+		int length = seats.length;
+		for(int i = 0; i < length; i++){
+			seats[i].setOpen();
+		}
+	}
+	
+	/**
 	 * This will return the best available seat
 	 * (This might have to have synchronization)
 	 * @return Seat reference if there is one, null if there isn't
@@ -27,6 +37,7 @@ public class Theater
 		}
 		return output;
 	}
+	
 	
 	/**
 	 * This method creates the seats; highest priority seats in at the beginning
