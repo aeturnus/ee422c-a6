@@ -7,8 +7,6 @@
 package assignment6.theater;
 
 import java.util.ArrayList;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This class serves the data structure holding the seats
@@ -17,6 +15,7 @@ public class Theater
 {
 	//ArrayList<Seat> seats;
 	Seat[] seats;
+	
 	
 	public Theater(){
 		seats = generateSeats();
@@ -35,7 +34,7 @@ public class Theater
 	
 	/**
 	 * This will return the best available seat
-	 * (This might have to have synchronization)
+	 * This has no guards against race conditions
 	 * @return Seat reference if there is one, null if there isn't
 	 */
 	public Seat getBestAvailableSeat(){
@@ -45,6 +44,26 @@ public class Theater
 		for(int i = 0; i < length && output == null; i++){
 			temp = seats[i];
 			if(!temp.isTaken()){
+				output = temp;
+			}
+		}
+		return output;
+	}
+	
+	/**
+	 * This method will get and mark reserved the best available seat
+	 * This has been guarded against race conditions
+	 * @return
+	 */
+	public Seat getAndMarkBestAvailableSeat(){
+		Seat output = null;
+		int length = seats.length;
+		Seat temp;
+		for(int i = 0; i < length && output == null; i++){
+			temp = seats[i];
+			//we see if it was nottaken; it is marked in the process
+			//if it was already marked, we mark it again anyway
+			if(!temp.testAndSet()){	
 				output = temp;
 			}
 		}

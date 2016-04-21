@@ -6,6 +6,9 @@
 
 package assignment6.theater;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * This class represents a seat
  * that can be taken; not taken
@@ -16,6 +19,7 @@ public class Seat implements Comparable<Seat>
 	protected int seat;	//plain number
 	protected HouseEnum house;	//see HouseEnum for details; holds the house
 	protected boolean taken;	//flags if taken or not
+	protected Lock tsLock;	//test and set lock
 	
 	/**
 	 * Constructor of a seat
@@ -28,6 +32,7 @@ public class Seat implements Comparable<Seat>
 		seat = seatNumber;
 		house = houseEnum;
 		taken = false;
+		tsLock = new ReentrantLock();
 	}
 	
 	//Accessors for taken: at some point 
@@ -40,6 +45,19 @@ public class Seat implements Comparable<Seat>
 	}
 	public boolean isTaken(){
 		return taken;
+	}
+	
+	/**
+	 * Set the seat as taken. This method
+	 * is intended for concurrency use
+	 * @return old status
+	 */
+	public boolean testAndSet(){
+		tsLock.lock();
+		boolean oldStatus = taken;
+		taken = true;
+		tsLock.unlock();
+		return oldStatus;
 	}
 	
 	public String toString(){

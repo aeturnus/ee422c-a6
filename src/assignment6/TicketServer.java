@@ -33,8 +33,9 @@ public class TicketServer {
 	static ArrayList<ThreadedTicketServer> servers = new ArrayList<ThreadedTicketServer>();	//Arraylist for the server objects
 	static ArrayList<Thread> serverThreads = new ArrayList<Thread>();						//Arraylist for the threads they use
 	
-	static Lock logLock = new ReentrantLock();
-	
+	static Lock logLock = new ReentrantLock();		//This lock is for accessing the log to prevent double adds
+	static Lock theaterLock = new ReentrantLock();	//This lock is for accessing the theater through the public methods
+													//with the unsynchronized methods
 	public static void reset(){
 		closeServers();		//shutdown servers
 		theater.clear();	//empty the seats
@@ -54,7 +55,7 @@ public class TicketServer {
 			//Set their running flag to false
 			servers.get(i).running = false;
 			try{
-				serverThreads.get(i).join(3000);		//Wait 3 seconds to finish up
+				serverThreads.get(i).join(3000);			//Wait 3 seconds to finish up
 				if(!servers.get(i).serverSocket.isClosed()){
 					servers.get(i).serverSocket.close();	//Close its socket forcefully
 				}
@@ -138,7 +139,8 @@ public class TicketServer {
 		for(int i = 0; i < length; i++){
 			for(int j = i+1; j < length; j++){
 				//Use compare to check for matches
-				if(log.get(i).compareTo(log.get(j)) == 0){
+				if(log.get(i).seat.compareTo(log.get(j).seat) == 0){
+					System.err.println("checkLogDoubles: " + log.get(i)+ " and " + log.get(j)+ " conflict!");
 					return false;
 				}
 			}
@@ -158,6 +160,7 @@ public class TicketServer {
 			one = log.get(i);
 			two = log.get(i+1);
 			if(one.compareTo(two) >= 0){
+				System.err.println("checkLogOrder: " + log.get(i)+ " and " + log.get(i+1)+ " time mismatch!");
 				return false;
 			}
 		}
@@ -165,12 +168,16 @@ public class TicketServer {
 	}
 	
 	////Apparently mandated functions to expose to the testcases?
+	////They have primitive locking mechanisms for access
 	/**
 	 * TicketServer wrapper for best available seat
 	 * @return best available seat
 	 */
 	public static Seat bestAvailableSeat(){
-		return theater.getBestAvailableSeat();
+		theaterLock.lock();
+		Seat seat = theater.getBestAvailableSeat();
+		theaterLock.unlock();
+		return seat;
 	}
 	
 	/**
@@ -178,7 +185,9 @@ public class TicketServer {
 	 * @return best available seat
 	 */
 	public static void markAvailableSeatTaken(Seat seat){
+		theaterLock.lock();
 		seat.setTaken();
+		theaterLock.unlock();
 	}
 	
 	/**
@@ -189,6 +198,10 @@ public class TicketServer {
 		return seat.toString();
 	}
 	////
+	
+	public static Seat getAndMarkBestAvailableSeat(){
+		return theater.getAndMarkBestAvailableSeat();
+	}
 }
 
 class ThreadedTicketServer implements Runnable {
@@ -199,8 +212,7 @@ class ThreadedTicketServer implements Runnable {
 	String testcase;
 	TicketClient sc;
 	ServerSocket serverSocket;	//Have a serversocket for us to listen to
-	static Lock seatLock = new ReentrantLock();
-	boolean running;	//Is it running the loop?
+	boolean running;			//Is it running the loop?
 	
 	//Made a constructor so it actually has a name and a server socket
 	ThreadedTicketServer(String name, ServerSocket ssocket){
@@ -218,27 +230,18 @@ class ThreadedTicketServer implements Runnable {
 				Socket clientSocket = serverSocket.accept();	//Accept connections
 				PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-				//As it stands, we have race conditions; oh fun!
-				//Locations to target: accessing seat status, setting seat status; should lock seat status access
-				seatLock.lock();
+				
 				long time = System.nanoTime();	//Timestamp for request
-				//Critical section
-				Seat seat = TicketServer.bestAvailableSeat();	//Get a seat as fast as possible	
+				Seat seat = TicketServer.getAndMarkBestAvailableSeat();	//Get a seat as fast as possible	
 				if(seat == null){	//If not a seat, then we're out. Finish up this thread and leave
 					out.println(threadname + ": Sorry, we're out of seats!");
 					running = false;
-					seatLock.unlock();
 					out.close();
 					in.close();
 					clientSocket.close();
 					continue;
 				}
-				TicketServer.markAvailableSeatTaken(seat);	//Set it taken
-				TicketServer.logSeat(time,seat,threadname);
-				seatLock.unlock();
-				//Critical end
-				
-				
+				TicketServer.logSeat(time, seat, threadname);	//Log our seat
 				out.println(time + "\t: " +threadname + " has given you ticket " + TicketServer.printTicket(seat));	//Tabbed timestamp; sortable by time in excel
 				
 				//Close the streams
@@ -262,9 +265,9 @@ class ThreadedTicketServer implements Runnable {
  * This class will serve as a log object
  */
 class TicketLog implements Comparable<TicketLog>{
-	private long timestamp;
-	private Seat seat;
-	private String office;
+	long timestamp;
+	Seat seat;
+	String office;
 	
 	TicketLog(long timestamp, Seat seat, String office){
 		this.timestamp = timestamp;
@@ -278,6 +281,7 @@ class TicketLog implements Comparable<TicketLog>{
 		return output;
 	}
 	
+	
 	/**
 	 * Compares timestamps;
 	 */
@@ -287,7 +291,7 @@ class TicketLog implements Comparable<TicketLog>{
 			return -1;
 		}
 		else if(comp == 0){
-			return 0;
+			return seat.compareTo(other.seat);
 		}
 		return 1;
 	}

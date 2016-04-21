@@ -30,13 +30,11 @@ public class TestTicketOffice {
 		}
 		TicketClient client = new TicketClient();
 		client.requestTicket();
-		TicketServer.reset();
 	}
 
 	@Test
 	public void testServerCachedHardInstance() {
 		try {
-			TicketServer.reset();
 			TicketServer.start(16790);
 		} catch (Exception e) {
 			fail();
@@ -45,6 +43,7 @@ public class TestTicketOffice {
 		TicketClient client2 = new TicketClient("localhost", "c2");
 		client1.requestTicket();
 		client2.requestTicket();
+		TicketServer.reset();
 	}
 
 	@Test
@@ -142,7 +141,50 @@ public class TestTicketOffice {
 		}
 		assertTrue(TicketServer.checkLogDoubles());
 		assertTrue(TicketServer.checkLogOrder());
-		TicketServer.reset();
+		TicketServer.closeServers();
+	}
+	
+	@Test
+	public void autoConcurrentServerTestSome() {
+		int serverPort1 = 16793;
+		int serverPort2 = 16794;
+		int serverPort3 = 16795;
+		try {
+			TicketServer.reset();
+			TicketServer.start(serverPort1);
+			TicketServer.start(serverPort2);
+			TicketServer.start(serverPort3);
+		} catch (Exception e) {
+			fail();
+		}
+		ArrayList<RequestThread> threadList = new ArrayList<RequestThread>();
+		TicketClient tc;
+		for(int i = 0; i < 100; i++){
+			tc = new TicketClient();
+			RequestThread thread = new RequestThread(tc);
+			threadList.add(thread);
+			thread.start();
+		}
+		try {
+			for(int i = 0; i < threadList.size(); i++){
+				threadList.get(i).join();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
+		}
+		try{
+			File csv = new File("./logSome.csv");
+			TicketServer.printLogCSV(new PrintStream(csv));
+			System.out.println("Ticket log written to " + "./logSome.csv");
+			//System.exit(0);
+		} catch (IOException ioe){
+			//System.err.println("server failed to close server socket for port " + TicketServer.PORT);
+			ioe.printStackTrace();
+		}
+		assertTrue(TicketServer.checkLogDoubles());
+		assertTrue(TicketServer.checkLogOrder());
+		TicketServer.closeServers();;
 	}
 	
 	
