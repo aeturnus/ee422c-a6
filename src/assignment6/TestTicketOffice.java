@@ -117,8 +117,7 @@ public class TestTicketOffice {
 			thread.start();
 		}
 		try {
-			for(int i = 0; i < threadList.size(); i++)
-			{
+			for(int i = 0; i < threadList.size(); i++){
 				threadList.get(i).join();
 			}
 		} catch (Exception e) {
@@ -135,8 +134,9 @@ public class TestTicketOffice {
 			//System.err.println("server failed to close server socket for port " + TicketServer.PORT);
 			ioe.printStackTrace();
 		}
-		
 		assertTrue(TicketServer.checkLogDoubles());
+		assertTrue(TicketServer.checkLogOrder());
+		TicketServer.reset();
 	}
 }
 

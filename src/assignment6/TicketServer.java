@@ -29,9 +29,8 @@ public class TicketServer {
 	//static int PORT = 2222; we can't use this
 	// EE422C: no matter how many concurrent requests you get,
 	// do not have more than three servers running concurrently
-	final static int MAXPARALLELTHREADS = 3;
-	static int numThread = 0;
-	static CyclicBarrier serverSocketBarrier = null;	//Have a barrier kill the socket when the server threads are done
+	final static int MAXPARALLELTHREADS = 3;	//Maximum number of running servers
+	static int numThread = 0;					//Server count
 	static Theater theater = new Theater();				//We have one theater
 	static ArrayList<TicketLog> log;
 	static final String logPath = "./log.csv";			//path for our log file
@@ -41,6 +40,7 @@ public class TicketServer {
 	public static void reset(){
 		//Shutdown our running servers
 		for(int i = 0; i < servers.size(); i++){
+			//Set their running flag to false
 			servers.get(i).running = false;
 			try{
 				serverThreads.get(i).join();
@@ -69,31 +69,11 @@ public class TicketServer {
 			return;
 		}
 		
-		//Barrier code for shutdown
-		serverSocketBarrier = new CyclicBarrier(MAXPARALLELTHREADS, new Runnable() {
-			public void run(){
-				//Use a barrier to wait until the server threads die to shut down the socket
-				try{
-					System.out.println("Servers have closed down");
-					//Sort the log
-					log.sort(null);
-					File csv = new File("./log.csv");
-					printLog(new PrintStream(csv));
-					System.out.println("Ticket log written to ");
-					System.exit(0);
-				} catch (IOException ioe){
-					//System.err.println("server failed to close server socket for port " + TicketServer.PORT);
-					ioe.printStackTrace();
-				}
-			}
-		});
-		
 		//Create servers not exceeding the count of MAXPARALLELTHREADS
 		//threadList = new ArrayList<ThreadedTicketServer>();
 		if(numThread < MAXPARALLELTHREADS){
 			ThreadedTicketServer serverThread = new ThreadedTicketServer("Box Office " + Character.toString((char)('A' + numThread))
-																,serverSocket
-																,serverSocketBarrier);	//Get office letter with 'A' offset
+																,serverSocket);	//Get office letter with 'A' offset
 			Thread t = new Thread(serverThread);
 			numThread++;
 			t.start();
@@ -145,6 +125,7 @@ public class TicketServer {
 	 * @return no doubles
 	 */
 	static boolean checkLogDoubles(){
+		log.sort(null);
 		int length = log.size();
 		for(int i = 0; i < length; i++){
 			for(int j = i+1; j < length; j++){
@@ -162,6 +143,7 @@ public class TicketServer {
 	 * @return
 	 */
 	static boolean checkLogOrder(){
+		log.sort(null);
 		int length = log.size()-1;
 		TicketLog one,two;
 		for(int i = 0; i < length; i++){
@@ -183,15 +165,13 @@ class ThreadedTicketServer implements Runnable {
 	String testcase;
 	TicketClient sc;
 	ServerSocket serverSocket;	//Have a serversocket for us to listen to
-	CyclicBarrier barrier;		//Barrier for closing the socket
 	static Lock seatLock = new ReentrantLock();
 	boolean running;	//Is it running the loop?
 	
 	//Made a constructor so it actually has a name and a server socket
-	ThreadedTicketServer(String name, ServerSocket ssocket, CyclicBarrier socketBarrier){
+	ThreadedTicketServer(String name, ServerSocket ssocket){
 		threadname = name;
 		serverSocket = ssocket;
-		barrier = socketBarrier;
 		running = true;
 	}
 
@@ -244,16 +224,6 @@ class ThreadedTicketServer implements Runnable {
 		}catch(IOException ioe){
 			System.err.println(threadname + ": has failed to close port " + serverSocket.getLocalPort());
 		}
-		//We use a barrier to handle the closing of the port
-		/*
-		try{
-			barrier.await();
-		} catch (InterruptedException ioe){
-			Thread.currentThread().interrupt();	//politely notify that we've been interrupted
-		} catch (BrokenBarrierException bbe){
-			System.err.println(threadname + ": barrier is broken :(");
-		}
-		*/
 		
 	}
 }
