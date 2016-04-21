@@ -1,3 +1,9 @@
+/*
+ * EE 422C Assignment 6 Spring 2016
+ * Brandon Nguyen (btn366)
+ * Sharmistha Maity (sm47767)
+ */
+
 package test;
 
 import org.junit.runner.JUnitCore;

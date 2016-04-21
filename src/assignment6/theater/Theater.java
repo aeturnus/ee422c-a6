@@ -1,14 +1,27 @@
+/*
+ * EE 422C Assignment 6 Spring 2016
+ * Brandon Nguyen (btn366)
+ * Sharmistha Maity (sm47767)
+ */
+
 package assignment6.theater;
 
 import java.util.ArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * This class serves the data structure holding the seats
+ */
 public class Theater
 {
 	//ArrayList<Seat> seats;
 	Seat[] seats;
+	
 	public Theater(){
 		seats = generateSeats();
 	}
+	
 	
 	/**
 	 * Unmarks all the seats

@@ -1,3 +1,9 @@
+/*
+ * EE 422C Assignment 6 Spring 2016
+ * Brandon Nguyen (btn366)
+ * Sharmistha Maity (sm47767)
+ */
+
 package assignment6;
 
 import static org.junit.Assert.fail;
@@ -17,11 +23,12 @@ public class TestTicketOffice {
 	// @Test
 	public void basicServerTest() {
 		try {
+			TicketServer.reset();
 			TicketServer.start(16789);
 		} catch (Exception e) {
 			fail();
 		}
-		TicketClient client = new TicketClient(16789);
+		TicketClient client = new TicketClient();
 		client.requestTicket();
 		TicketServer.reset();
 	}
@@ -29,43 +36,44 @@ public class TestTicketOffice {
 	@Test
 	public void testServerCachedHardInstance() {
 		try {
+			TicketServer.reset();
 			TicketServer.start(16790);
 		} catch (Exception e) {
 			fail();
 		}
-		TicketClient client1 = new TicketClient("localhost", "c1",16790);
-		TicketClient client2 = new TicketClient("localhost", "c2",16790);
+		TicketClient client1 = new TicketClient("localhost", "c1");
+		TicketClient client2 = new TicketClient("localhost", "c2");
 		client1.requestTicket();
 		client2.requestTicket();
-		TicketServer.reset();
 	}
 
 	@Test
 	public void twoNonConcurrentServerTest() {
 		try {
+			TicketServer.reset();
 			TicketServer.start(16791);
 		} catch (Exception e) {
 			fail();
 		}
-		TicketClient c1 = new TicketClient("nonconc1",16791);
-		TicketClient c2 = new TicketClient("nonconc2",16791);
-		TicketClient c3 = new TicketClient("nonconc3",16791);
+		TicketClient c1 = new TicketClient("nonconc1");
+		TicketClient c2 = new TicketClient("nonconc2");
+		TicketClient c3 = new TicketClient("nonconc3");
 		c1.requestTicket();
 		c2.requestTicket();
 		c3.requestTicket();
-		TicketServer.reset();
 	}
 
 	@Test
 	public void twoConcurrentServerTest() {
 		try {
+			TicketServer.reset();
 			TicketServer.start(16792);
 		} catch (Exception e) {
 			fail();
 		}
-		final TicketClient c1 = new TicketClient("conc1",16792);
-		final TicketClient c2 = new TicketClient("conc2",16792);
-		final TicketClient c3 = new TicketClient("conc3",16792);
+		final TicketClient c1 = new TicketClient("conc1");
+		final TicketClient c2 = new TicketClient("conc2");
+		final TicketClient c3 = new TicketClient("conc3");
 		Thread t1 = new Thread() {
 			public void run() {
 				c1.requestTicket();
@@ -91,7 +99,6 @@ public class TestTicketOffice {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		TicketServer.reset();
 
 	}
 	
@@ -111,7 +118,7 @@ public class TestTicketOffice {
 		ArrayList<RequestThread> threadList = new ArrayList<RequestThread>();
 		TicketClient tc;
 		for(int i = 0; i < 1000; i++){
-			tc = new TicketClient("conc #"+i,serverPort1 + i%3);	//use modulo to pick a port to connect to
+			tc = new TicketClient();
 			RequestThread thread = new RequestThread(tc);
 			threadList.add(thread);
 			thread.start();
@@ -125,9 +132,8 @@ public class TestTicketOffice {
 			fail();
 		}
 		try{
-			//Sort the log
 			File csv = new File("./log.csv");
-			TicketServer.printLog(new PrintStream(csv));
+			TicketServer.printLogCSV(new PrintStream(csv));
 			System.out.println("Ticket log written to " + "./log.csv");
 			//System.exit(0);
 		} catch (IOException ioe){
@@ -138,6 +144,8 @@ public class TestTicketOffice {
 		assertTrue(TicketServer.checkLogOrder());
 		TicketServer.reset();
 	}
+	
+	
 }
 
 class RequestThread extends Thread{
@@ -146,6 +154,11 @@ class RequestThread extends Thread{
 		tc = client;
 	}
 	public void run(){
+		try{
+			Thread.currentThread().sleep((int)(Math.random() * 10));
+		}catch(InterruptedException ie){
+			Thread.currentThread().interrupt();
+		}
 		tc.requestTicket();
 	}
 }

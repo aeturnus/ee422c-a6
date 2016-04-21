@@ -1,3 +1,9 @@
+/*
+ * EE 422C Assignment 6 Spring 2016
+ * Brandon Nguyen (btn366)
+ * Sharmistha Maity (sm47767)
+ */
+
 package assignment6;
 
 import java.io.BufferedReader;
@@ -31,13 +37,11 @@ class ThreadedTicketClient implements Runnable {
 			echoSocket.close();
 		}
 		catch (UnknownHostException uhe){
-			System.err.println(threadname + " oops");
+			System.err.println(threadname + ": unknown host");
 			uhe.printStackTrace();
 		}
 		catch (IOException ioe) {
-			System.out.println("Sorry, tickets are not available at this time");
-			//System.err.println(threadname + " oops");
-			//ioe.printStackTrace();
+			System.out.println("Sorry, tickets are not available at this time. The show is either sold out or there is no current show.");
 		}
 		
 	}
@@ -48,7 +52,6 @@ public class TicketClient {
 	String result = "dummy";
 	String hostName = "";
 	String threadName = "";
-	int serverPort;
 
 	
 	TicketClient(String hostname, String threadname, int serverPort) {
@@ -56,13 +59,21 @@ public class TicketClient {
 		hostName = hostname;
 		threadName = threadname;
 	}
-
-	TicketClient(String name, int serverPort) {
-		this("localhost", name, serverPort);
+	
+	
+	//These constructors will pick a random port from the ticket server for the connection
+	TicketClient(String hostname, String threadname) {
+		tc = new ThreadedTicketClient(this, hostname, threadname,TicketServer.getRandomPort());
+		hostName = hostname;
+		threadName = threadname;
 	}
 
-	TicketClient(int serverPort) {
-		this("localhost", "unnamed client", serverPort);
+	TicketClient(String name) {
+		this("localhost", name, TicketServer.getRandomPort());
+	}
+
+	TicketClient() {
+		this("localhost", "unnamed client", TicketServer.getRandomPort());
 	}
 
 	void requestTicket() {
