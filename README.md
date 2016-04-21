@@ -1,4 +1,4 @@
-# EE 422C Spring 2016 Assignment 6
+# EE 422C Spring 2016 Assignment 6 (Alternate)
 ## Brandon Nguyen (btn366)
 ## Sharmistha Maity (sm47767)
 
