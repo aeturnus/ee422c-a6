@@ -174,9 +174,9 @@ public class TicketServer {
 	 * @return best available seat
 	 */
 	public static Seat bestAvailableSeat(){
-		theaterLock.lock();
+		//theaterLock.lock();
 		Seat seat = theater.getBestAvailableSeat();
-		theaterLock.unlock();
+		//theaterLock.unlock();
 		return seat;
 	}
 	
@@ -185,9 +185,9 @@ public class TicketServer {
 	 * @return best available seat
 	 */
 	public static void markAvailableSeatTaken(Seat seat){
-		theaterLock.lock();
+		//theaterLock.lock();
 		seat.setTaken();
-		theaterLock.unlock();
+		//theaterLock.unlock();
 	}
 	
 	/**
@@ -212,6 +212,7 @@ class ThreadedTicketServer implements Runnable {
 	String testcase;
 	TicketClient sc;
 	ServerSocket serverSocket;	//Have a serversocket for us to listen to
+	static Lock seatLock = new ReentrantLock();	//Lock working with the seat; static because threads share it
 	boolean running;			//Is it running the loop?
 	
 	//Made a constructor so it actually has a name and a server socket
@@ -232,15 +233,21 @@ class ThreadedTicketServer implements Runnable {
 				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 				
 				long time = System.nanoTime();	//Timestamp for request
-				Seat seat = TicketServer.getAndMarkBestAvailableSeat();	//Get a seat as fast as possible	
+				//Critical start
+				seatLock.lock();
+				Seat seat = TicketServer.bestAvailableSeat();	//Get a seat as fast as possible	
 				if(seat == null){	//If not a seat, then we're out. Finish up this thread and leave
 					out.println(threadname + ": Sorry, we're out of seats!");
 					running = false;
+					seatLock.unlock();	//gotta unlock here too
 					out.close();
 					in.close();
 					clientSocket.close();
 					continue;
 				}
+				TicketServer.markAvailableSeatTaken(seat);
+				seatLock.unlock();
+				//Critical end
 				TicketServer.logSeat(time, seat, threadname);	//Log our seat
 				out.println(time + "\t: " +threadname + " has given you ticket " + TicketServer.printTicket(seat));	//Tabbed timestamp; sortable by time in excel
 				
